@@ -81,14 +81,18 @@ export default function Home() {
     setLoading(false)
   }
 
-  const toggle = async (key) => {
-    if (key === 'food' && !feedingDay) return
-    const newChecked = { ...checked, [key]: !checked[key] }
-    setChecked(newChecked)
-    await supabase
-      .from('checklist')
-      .upsert({ date: dateKey, ...newChecked, updated_at: new Date().toISOString() })
-  }
+const toggle = async (key) => {
+  if (key === 'food' && !feedingDay) return
+  const newChecked = { ...checked, [key]: !checked[key] }
+  setChecked(newChecked)
+  const result = await supabase
+    .from('checklist')
+    .upsert(
+      { date: dateKey, ...newChecked, updated_at: new Date().toISOString() },
+      { onConflict: 'date' }
+    )
+  console.log('Supabase result:', result)
+}
 
   return (
     <div className="home">

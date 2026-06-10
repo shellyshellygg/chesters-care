@@ -76,11 +76,14 @@ export default function CareSummary() {
   }
 
   const handleSave = async () => {
-    await supabase
-      .from('checklist')
-      .upsert({ date, ...checked, updated_at: new Date().toISOString() })
-    setSaved(true)
-  }
+  await supabase
+    .from('checklist')
+    .upsert(
+      { date, ...checked, updated_at: new Date().toISOString() },
+      { onConflict: 'date' }
+    )
+  setSaved(true)
+}
 
   const formatted = parsedDate.toLocaleDateString('en-US', {
     weekday: 'long', month: 'long', day: 'numeric'
