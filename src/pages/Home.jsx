@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { supabase } from '../supabase'
 
 const SNACK_BY_DAY = {
   0: { name: 'Snack', emoji: '⭐', description: 'Free choice treat' },
@@ -15,11 +16,7 @@ const FEEDING_START = new Date('2026-06-07T12:00:00')
 
 function isFeedingDay(date) {
   const diffDays = Math.floor((date - FEEDING_START) / (1000 * 60 * 60 * 24))
-  return diffDays % 2 !== 0
-}
-
-function getDateKey(date) {
-  return date.toLocaleDateString('en-CA')
+  return diffDays % 2 === 0
 }
 
 function formatDate(date) {
@@ -32,42 +29,28 @@ function addDays(date, days) {
   return result
 }
 
+function getDateKey(date) {
+  return date.toLocaleDateString('en-CA')
+}
+
 export default function Home() {
   const [offset, setOffset] = useState(0)
+  const [checked, setChecked] = useState({
+    food: false, veggie: false, water: false,
+    clean: false, snack: false, playtime: false,
+  })
+  const [showNotification, setShowNotification] = useState(false)
+  const [loading, setLoading] = useState(true)
 
   const activeDate = addDays(new Date(), offset)
   const dateKey = getDateKey(activeDate)
   const feedingDay = isFeedingDay(activeDate)
   const snack = SNACK_BY_DAY[activeDate.getDay()]
-
-  const saved = JSON.parse(localStorage.getItem(`checklist-${dateKey}`) || '{}')
-
-  const [checked, setChecked] = useState({
-    food: saved.food || false,
-    veggie: saved.veggie || false,
-    water: saved.water || false,
-    clean: saved.clean || false,
-    snack: saved.snack || false,
-    playtime: saved.playtime || false,
-  })
-
-  const [showNotification, setShowNotification] = useState(false)
+  const isToday = offset === 0
 
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem(`checklist-${dateKey}`) || '{}')
-    setChecked({
-      food: saved.food || false,
-      veggie: saved.veggie || false,
-      water: saved.water || false,
-      clean: saved.clean || false,
-      snack: saved.snack || false,
-      playtime: saved.playtime || false,
-    })
+    loadChecklist()
   }, [dateKey])
-
-  useEffect(() => {
-    localStorage.setItem(`checklist-${dateKey}`, JSON.stringify(checked))
-  }, [checked])
 
   useEffect(() => {
     const lastWeigh = localStorage.getItem('last-weigh-date')
@@ -76,12 +59,36 @@ export default function Home() {
     if (diff >= 30) setShowNotification(true)
   }, [])
 
-  const toggle = (key) => {
-    if (key === 'food' && !feedingDay) return
-    setChecked(prev => ({ ...prev, [key]: !prev[key] }))
+  const loadChecklist = async () => {
+    setLoading(true)
+    const { data } = await supabase
+      .from('checklist')
+      .select('*')
+      .eq('date', dateKey)
+      .single()
+    if (data) {
+      setChecked({
+        food: data.food || false,
+        veggie: data.veggie || false,
+        water: data.water || false,
+        clean: data.clean || false,
+        snack: data.snack || false,
+        playtime: data.playtime || false,
+      })
+    } else {
+      setChecked({ food: false, veggie: false, water: false, clean: false, snack: false, playtime: false })
+    }
+    setLoading(false)
   }
 
-  const isToday = offset === 0
+  const toggle = async (key) => {
+    if (key === 'food' && !feedingDay) return
+    const newChecked = { ...checked, [key]: !checked[key] }
+    setChecked(newChecked)
+    await supabase
+      .from('checklist')
+      .upsert({ date: dateKey, ...newChecked, updated_at: new Date().toISOString() })
+  }
 
   return (
     <div className="home">
@@ -123,27 +130,31 @@ export default function Home() {
         </button>
       </div>
 
-      <div className="cards">
-        <CheckCard
-          emoji="🍽️"
-          label={feedingDay ? 'Food' : 'No Food'}
-          sublabel={feedingDay ? '2 scoops' : null}
-          checked={checked.food}
-          disabled={!feedingDay}
-          onToggle={() => toggle('food')}
-        />
-        <CheckCard emoji="🥦" label="Veggie" checked={checked.veggie} onToggle={() => toggle('veggie')} />
-        <CheckCard emoji="💧" label="Change Water" checked={checked.water} onToggle={() => toggle('water')} />
-        <CheckCard emoji="🚽" label="Clean" checked={checked.clean} onToggle={() => toggle('clean')} />
-        <CheckCard
-          emoji={snack.emoji}
-          label={snack.name}
-          sublabel={snack.description}
-          checked={checked.snack}
-          onToggle={() => toggle('snack')}
-        />
-        <CheckCard emoji="🎡" label="Play Time" checked={checked.playtime} onToggle={() => toggle('playtime')} />
-      </div>
+      {loading ? (
+        <div className="loading">Loading...</div>
+      ) : (
+        <div className="cards">
+          <CheckCard
+            emoji="🍽️"
+            label={feedingDay ? 'Food' : 'No Food'}
+            sublabel={feedingDay ? '2 scoops' : null}
+            checked={checked.food}
+            disabled={!feedingDay}
+            onToggle={() => toggle('food')}
+          />
+          <CheckCard emoji="🥦" label="Veggie" checked={checked.veggie} onToggle={() => toggle('veggie')} />
+          <CheckCard emoji="💧" label="Change Water" checked={checked.water} onToggle={() => toggle('water')} />
+          <CheckCard emoji="🚽" label="Clean" checked={checked.clean} onToggle={() => toggle('clean')} />
+          <CheckCard
+            emoji={snack.emoji}
+            label={snack.name}
+            sublabel={snack.description}
+            checked={checked.snack}
+            onToggle={() => toggle('snack')}
+          />
+          <CheckCard emoji="🎡" label="Play Time" checked={checked.playtime} onToggle={() => toggle('playtime')} />
+        </div>
+      )}
 
       <div className="links home">
         <p>more stuff:</p>
