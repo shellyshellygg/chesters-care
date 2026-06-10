@@ -611,3 +611,61 @@ body {
 }
 
 .save-btn:hover { background: #d4614a; }
+
+/* ============================================
+   PASSCODE
+   ============================================ */
+.passcode-screen {
+  max-width: 420px;
+  margin: 0 auto;
+  min-height: 100vh;
+  background: #fdf6f0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  gap: 12px;
+}
+
+.passcode-emoji { font-size: 64px; }
+
+.passcode-screen h1 {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.passcode-screen p {
+  color: #999;
+  font-size: 15px;
+  margin: 0;
+}
+
+.passcode-input {
+  width: 160px;
+  padding: 14px;
+  text-align: center;
+  font-size: 24px;
+  letter-spacing: 8px;
+  border: 2px solid #f0e0d8;
+  border-radius: 14px;
+  outline: none;
+  background: white;
+  font-family: inherit;
+}
+
+.passcode-input:focus { border-color: #e8735a; }
+.passcode-input.passcode-error { border-color: #e74c3c; animation: shake 0.3s; }
+
+.passcode-error-msg {
+  color: #e74c3c;
+  font-size: 13px;
+  margin: 0;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-8px); }
+  75% { transform: translateX(8px); }
+}
