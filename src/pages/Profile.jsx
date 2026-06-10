@@ -1,4 +1,6 @@
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { supabase } from '../supabase'
 
 const BIRTH_DATE = new Date('2025-02-14')
 
@@ -13,8 +15,20 @@ function getAge() {
 }
 
 export default function Profile() {
-  const weights = JSON.parse(localStorage.getItem('chester-weights') || '[]')
-  const latest = weights[0]
+  const [latest, setLatest] = useState(null)
+
+  useEffect(() => {
+    const loadLatest = async () => {
+      const { data } = await supabase
+        .from('weights')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single()
+      if (data) setLatest(data)
+    }
+    loadLatest()
+  }, [])
 
   return (
     <div className="page">
@@ -30,7 +44,7 @@ export default function Profile() {
       <div className="info-card">
         {latest ? (
           <>
-            <p>On <strong>{new Date(latest.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}</strong>, he weighed</p>
+            <p>On <strong>{new Date(latest.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}</strong>, he weighed</p>
             <h2>{latest.weight} grams</h2>
           </>
         ) : (
