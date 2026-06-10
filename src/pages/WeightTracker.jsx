@@ -1,19 +1,31 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import confetti from 'canvas-confetti'
+import { supabase } from '../supabase'
 
 export default function WeightTracker() {
-  const [weights, setWeights] = useState(JSON.parse(localStorage.getItem('chester-weights') || '[]'))
+  const [weights, setWeights] = useState([])
   const [input, setInput] = useState('')
 
-  const handleSubmit = () => {
+  useEffect(() => { loadWeights() }, [])
+
+  const loadWeights = async () => {
+    const { data } = await supabase
+      .from('weights')
+      .select('*')
+      .order('created_at', { ascending: false })
+    if (data) setWeights(data)
+  }
+
+  const handleSubmit = async () => {
     if (!input || isNaN(input)) return
-    const entry = { date: new Date().toISOString(), weight: parseFloat(input) }
-    const updated = [entry, ...weights]
-    setWeights(updated)
-    localStorage.setItem('chester-weights', JSON.stringify(updated))
+    await supabase.from('weights').insert({
+      date: new Date().toLocaleDateString('en-CA'),
+      weight: parseFloat(input),
+    })
     localStorage.setItem('last-weigh-date', new Date().toISOString())
     setInput('')
+    loadWeights()
     confetti({
       particleCount: 120,
       spread: 70,
@@ -22,10 +34,9 @@ export default function WeightTracker() {
     })
   }
 
-  const handleDelete = (index) => {
-    const updated = weights.filter((_, i) => i !== index)
-    setWeights(updated)
-    localStorage.setItem('chester-weights', JSON.stringify(updated))
+  const handleDelete = async (id) => {
+    await supabase.from('weights').delete().eq('id', id)
+    loadWeights()
   }
 
   return (
@@ -51,13 +62,11 @@ export default function WeightTracker() {
       <div className="weight-log">
         {weights.length === 0
           ? <p className="empty-log">No entries yet.</p>
-          : weights.map((entry, i) => (
-            <div key={i} className="weight-row">
-              <span className="wlog-date">
-                {new Date(entry.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-              </span>
+          : weights.map((entry) => (
+            <div key={entry.id} className="weight-row">
+              <span className="wlog-date">{new Date(entry.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
               <span className="wlog-weight">{entry.weight}g</span>
-              <button onClick={() => handleDelete(i)} className="delete-btn">✕</button>
+              <button onClick={() => handleDelete(entry.id)} className="delete-btn">✕</button>
             </div>
           ))
         }
