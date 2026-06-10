@@ -6,7 +6,7 @@ const FEEDING_START = new Date('2026-06-07T12:00:00')
 
 function isFeedingDay(date) {
   const diffDays = Math.floor((date - FEEDING_START) / (1000 * 60 * 60 * 24))
-  return diffDays % 2 === 0
+  return diffDays % 2 !== 0
 }
 
 export default function Calendar() {
