@@ -1,11 +1,11 @@
 import { useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams, useNavigate } from 'react-router-dom'
 
 const FEEDING_START = new Date('2026-06-07T12:00:00')
 
 function isFeedingDay(date) {
   const diffDays = Math.floor((date - FEEDING_START) / (1000 * 60 * 60 * 24))
-  return diffDays % 2 === 0
+  return diffDays % 2 !== 0
 }
 
 const SNACK_BY_DAY = {
@@ -18,11 +18,20 @@ const SNACK_BY_DAY = {
   6: { name: 'Snack', emoji: '⭐' },
 }
 
+function addDays(dateStr, days) {
+  const date = new Date(dateStr + 'T12:00:00')
+  date.setDate(date.getDate() + days)
+  return date.toLocaleDateString('en-CA')
+}
+
 export default function CareSummary() {
   const { date } = useParams()
+  const navigate = useNavigate()
   const parsedDate = new Date(date + 'T12:00:00')
   const feeding = isFeedingDay(parsedDate)
   const snack = SNACK_BY_DAY[parsedDate.getDay()]
+  const todayKey = new Date().toLocaleDateString('en-CA')
+  const isFuture = date > todayKey
 
   const stored = JSON.parse(localStorage.getItem(`checklist-${date}`) || '{}')
 
@@ -39,6 +48,7 @@ export default function CareSummary() {
 
   const toggle = (key) => {
     if (key === 'food' && !feeding) return
+    if (isFuture) return
     setChecked(prev => ({ ...prev, [key]: !prev[key] }))
     setSaved(false)
   }
@@ -65,7 +75,17 @@ export default function CareSummary() {
     <div className="page">
       <Link to="/calendar" className="back">&lt; Back to Calendar</Link>
       <h1 className="page-title">Care Summary</h1>
-      <p className="page-date">{formatted}</p>
+
+      <div className="date-nav">
+        <button className="date-nav-btn" onClick={() => navigate(`/care-summary/${addDays(date, -1)}`)}>‹ prev</button>
+        <span className="date-nav-label">{formatted}</span>
+        <button
+          className={`date-nav-btn ${date >= todayKey ? 'disabled-nav' : ''}`}
+          onClick={() => { if (date < todayKey) navigate(`/care-summary/${addDays(date, 1)}`) }}
+        >
+          next ›
+        </button>
+      </div>
 
       <div className="summary-cards">
         {ITEMS.map(item => (
@@ -84,9 +104,11 @@ export default function CareSummary() {
         ))}
       </div>
 
-      <button className="save-btn" onClick={handleSave}>
-        {saved ? '✓ Saved!' : 'Save changes'}
-      </button>
+      {!isFuture && (
+        <button className="save-btn" onClick={handleSave}>
+          {saved ? '✓ Saved!' : 'Save changes'}
+        </button>
+      )}
     </div>
   )
 }
