@@ -51,9 +51,10 @@ export default function Calendar() {
           const feeding = isFeedingDay(date)
           const emojis = [data.snack && '🌰', data.playtime && '🎡'].filter(Boolean).join('')
 
-          let cellClass = feeding ? 'feeding-day' : 'no-feed-day'
-          if (hasData && allDone) cellClass = 'all-done'
-          else if (hasData && feeding) cellClass = 'feeding-pending'
+          const foodChecked = data.food === true
+let cellClass = feeding ? 'feeding-day' : 'no-feed-day'
+if (feeding && foodChecked) cellClass = 'all-done'
+else if (feeding && hasData && !foodChecked) cellClass = 'feeding-pending'
 
           return (
             <div
