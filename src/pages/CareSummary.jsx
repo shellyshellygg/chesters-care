@@ -1,30 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 
-const [checked, setChecked] = useState({
-  food: false,
-  veggie: false,
-  water: false,
-  clean: false,
-  snack: false,
-  playtime: false,
-})
-
-const [saved, setSaved] = useState(false)
-
-useEffect(() => {
-  const stored = JSON.parse(localStorage.getItem(`checklist-${date}`) || '{}')
-  setChecked({
-    food: stored.food || false,
-    veggie: stored.veggie || false,
-    water: stored.water || false,
-    clean: stored.clean || false,
-    snack: stored.snack || false,
-    playtime: stored.playtime || false,
-  })
-  setSaved(false)
-}, [date])
-
 const FEEDING_START = new Date('2026-06-07T12:00:00')
 
 function isFeedingDay(date) {
@@ -57,17 +33,29 @@ export default function CareSummary() {
   const todayKey = new Date().toLocaleDateString('en-CA')
   const isFuture = date > todayKey
 
-
   const [checked, setChecked] = useState({
-    food: stored.food || false,
-    veggie: stored.veggie || false,
-    water: stored.water || false,
-    clean: stored.clean || false,
-    snack: stored.snack || false,
-    playtime: stored.playtime || false,
+    food: false,
+    veggie: false,
+    water: false,
+    clean: false,
+    snack: false,
+    playtime: false,
   })
 
   const [saved, setSaved] = useState(false)
+
+  useEffect(() => {
+    const stored = JSON.parse(localStorage.getItem(`checklist-${date}`) || '{}')
+    setChecked({
+      food: stored.food || false,
+      veggie: stored.veggie || false,
+      water: stored.water || false,
+      clean: stored.clean || false,
+      snack: stored.snack || false,
+      playtime: stored.playtime || false,
+    })
+    setSaved(false)
+  }, [date])
 
   const toggle = (key) => {
     if (key === 'food' && !feeding) return
