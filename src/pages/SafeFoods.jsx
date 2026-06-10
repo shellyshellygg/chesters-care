@@ -1,11 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-
-const DEFAULT_FOODS = {
-  veggies: ['Broccoli', 'Carrot', 'Cucumber', 'Zucchini', 'Bell pepper', 'Spinach', 'Kale', 'Cabbage'],
-  fruits: ['Blueberry', 'Strawberry', 'Apple (no seeds)', 'Pear', 'Watermelon', 'Banana', 'Mango'],
-  snacks: ['Plain tofu', 'Pumpkin seed', 'Sunflower seed', 'Plain cooked chicken', 'Hard boiled egg', 'Lab blocks', 'Peanut (unsalted)'],
-}
+import { supabase } from '../supabase'
 
 function fuzzyMatch(item, search) {
   const s = search.toLowerCase()
@@ -18,32 +13,40 @@ function fuzzyMatch(item, search) {
 }
 
 export default function SafeFoods() {
-  const [foods, setFoods] = useState(
-    JSON.parse(localStorage.getItem('safe-foods') || JSON.stringify(DEFAULT_FOODS))
-  )
+  const [foods, setFoods] = useState({ veggies: [], fruits: [], snacks: [] })
   const [search, setSearch] = useState('')
   const [newItem, setNewItem] = useState({ veggies: '', fruits: '', snacks: '' })
 
-  const save = (updated) => {
-    setFoods(updated)
-    localStorage.setItem('safe-foods', JSON.stringify(updated))
+  useEffect(() => { loadFoods() }, [])
+
+  const loadFoods = async () => {
+    const { data } = await supabase.from('safe_foods').select('*').order('name')
+    if (data) {
+      setFoods({
+        veggies: data.filter(f => f.category === 'veggies').map(f => ({ id: f.id, name: f.name })),
+        fruits: data.filter(f => f.category === 'fruits').map(f => ({ id: f.id, name: f.name })),
+        snacks: data.filter(f => f.category === 'snacks').map(f => ({ id: f.id, name: f.name })),
+      })
+    }
   }
 
-  const addItem = (category) => {
+  const addItem = async (category) => {
     const val = newItem[category].trim()
     if (!val) return
-    save({ ...foods, [category]: [...foods[category], val] })
+    await supabase.from('safe_foods').insert({ category, name: val })
     setNewItem(prev => ({ ...prev, [category]: '' }))
+    loadFoods()
   }
 
-  const removeItem = (category, index) => {
-    save({ ...foods, [category]: foods[category].filter((_, i) => i !== index) })
+  const removeItem = async (id) => {
+    await supabase.from('safe_foods').delete().eq('id', id)
+    loadFoods()
   }
 
   const filtered = {
-    veggies: foods.veggies.filter(i => fuzzyMatch(i, search)),
-    fruits: foods.fruits.filter(i => fuzzyMatch(i, search)),
-    snacks: foods.snacks.filter(i => fuzzyMatch(i, search)),
+    veggies: foods.veggies.filter(f => fuzzyMatch(f.name, search)),
+    fruits: foods.fruits.filter(f => fuzzyMatch(f.name, search)),
+    snacks: foods.snacks.filter(f => fuzzyMatch(f.name, search)),
   }
 
   const noResults = search && Object.values(filtered).every(arr => arr.length === 0)
@@ -71,10 +74,10 @@ export default function SafeFoods() {
         <div key={category} className="food-section">
           <h3>{category.charAt(0).toUpperCase() + category.slice(1)}</h3>
           <ul>
-            {filtered[category].map((item, i) => (
-              <li key={i}>
-                {item}
-                <button className="remove-btn" onClick={() => removeItem(category, foods[category].indexOf(item))}>✕</button>
+            {filtered[category].map(item => (
+              <li key={item.id}>
+                {item.name}
+                <button className="remove-btn" onClick={() => removeItem(item.id)}>✕</button>
               </li>
             ))}
           </ul>

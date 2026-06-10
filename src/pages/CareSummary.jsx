@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
+import { supabase } from '../supabase'
 
 const FEEDING_START = new Date('2026-06-07T12:00:00')
 
@@ -34,28 +35,38 @@ export default function CareSummary() {
   const isFuture = date > todayKey
 
   const [checked, setChecked] = useState({
-    food: false,
-    veggie: false,
-    water: false,
-    clean: false,
-    snack: false,
-    playtime: false,
+    food: false, veggie: false, water: false,
+    clean: false, snack: false, playtime: false,
   })
-
   const [saved, setSaved] = useState(false)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const stored = JSON.parse(localStorage.getItem(`checklist-${date}`) || '{}')
-    setChecked({
-      food: stored.food || false,
-      veggie: stored.veggie || false,
-      water: stored.water || false,
-      clean: stored.clean || false,
-      snack: stored.snack || false,
-      playtime: stored.playtime || false,
-    })
-    setSaved(false)
+    loadData()
   }, [date])
+
+  const loadData = async () => {
+    setLoading(true)
+    const { data } = await supabase
+      .from('checklist')
+      .select('*')
+      .eq('date', date)
+      .single()
+    if (data) {
+      setChecked({
+        food: data.food || false,
+        veggie: data.veggie || false,
+        water: data.water || false,
+        clean: data.clean || false,
+        snack: data.snack || false,
+        playtime: data.playtime || false,
+      })
+    } else {
+      setChecked({ food: false, veggie: false, water: false, clean: false, snack: false, playtime: false })
+    }
+    setSaved(false)
+    setLoading(false)
+  }
 
   const toggle = (key) => {
     if (key === 'food' && !feeding) return
@@ -64,8 +75,10 @@ export default function CareSummary() {
     setSaved(false)
   }
 
-  const handleSave = () => {
-    localStorage.setItem(`checklist-${date}`, JSON.stringify(checked))
+  const handleSave = async () => {
+    await supabase
+      .from('checklist')
+      .upsert({ date, ...checked, updated_at: new Date().toISOString() })
     setSaved(true)
   }
 
@@ -98,22 +111,26 @@ export default function CareSummary() {
         </button>
       </div>
 
-      <div className="summary-cards">
-        {ITEMS.map(item => (
-          <div
-            key={item.key}
-            className={`card ${checked[item.key] ? 'complete' : ''} ${item.disabled ? 'disabled' : ''}`}
-            onClick={() => toggle(item.key)}
-          >
-            <span className="card-emoji">{item.emoji}</span>
-            <div className="card-text">
-              <span className="card-label">{item.label}</span>
-              {item.sublabel && <span className="card-sublabel">{item.sublabel}</span>}
+      {loading ? (
+        <div className="loading">Loading...</div>
+      ) : (
+        <div className="summary-cards">
+          {ITEMS.map(item => (
+            <div
+              key={item.key}
+              className={`card ${checked[item.key] ? 'complete' : ''} ${item.disabled ? 'disabled' : ''}`}
+              onClick={() => toggle(item.key)}
+            >
+              <span className="card-emoji">{item.emoji}</span>
+              <div className="card-text">
+                <span className="card-label">{item.label}</span>
+                {item.sublabel && <span className="card-sublabel">{item.sublabel}</span>}
+              </div>
+              <div className="checkbox">{checked[item.key] ? '✓' : ''}</div>
             </div>
-            <div className="checkbox">{checked[item.key] ? '✓' : ''}</div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {!isFuture && (
         <button className="save-btn" onClick={handleSave}>
