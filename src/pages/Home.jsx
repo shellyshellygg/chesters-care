@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../supabase'
+import confetti from 'canvas-confetti'
 
 const SNACK_BY_DAY = {
   0: { name: 'Snack', emoji: '⭐', description: 'Free choice treat' },
@@ -37,8 +38,10 @@ export default function Home() {
   const [offset, setOffset] = useState(0)
   const [checked, setChecked] = useState({
     food: false, veggie: false, water: false,
-    clean: false, snack: false, playtime: false,
+    clean: false, snack: false, playtime: false, cageclean: false,
   })
+  const [notes, setNotes] = useState('')
+  const [showNotes, setShowNotes] = useState(false)
   const [showNotification, setShowNotification] = useState(false)
   const [loading, setLoading] = useState(true)
 
@@ -74,25 +77,52 @@ export default function Home() {
         clean: data.clean || false,
         snack: data.snack || false,
         playtime: data.playtime || false,
+        cageclean: data.cageclean || false,
       })
+      if (data.notes) {
+        setNotes(data.notes)
+        setShowNotes(true)
+      } else {
+        setNotes('')
+        setShowNotes(false)
+      }
     } else {
-      setChecked({ food: false, veggie: false, water: false, clean: false, snack: false, playtime: false })
+      setChecked({ food: false, veggie: false, water: false, clean: false, snack: false, playtime: false, cageclean: false })
+      setNotes('')
+      setShowNotes(false)
     }
     setLoading(false)
   }
 
-const toggle = async (key) => {
-  if (key === 'food' && !feedingDay) return
-  const newChecked = { ...checked, [key]: !checked[key] }
-  setChecked(newChecked)
-  const result = await supabase
-    .from('checklist')
-    .upsert(
-      { date: dateKey, ...newChecked, updated_at: new Date().toISOString() },
-      { onConflict: 'date' }
-    )
-  console.log('Supabase result:', result)
-}
+  const saveNotes = async (value) => {
+    setNotes(value)
+    await supabase
+      .from('checklist')
+      .upsert(
+        { date: dateKey, ...checked, notes: value, updated_at: new Date().toISOString() },
+        { onConflict: 'date' }
+      )
+  }
+
+  const toggle = async (key) => {
+    if (key === 'food' && !feedingDay) return
+    const newChecked = { ...checked, [key]: !checked[key] }
+    setChecked(newChecked)
+    if (key === 'playtime' && newChecked.playtime) {
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#e8735a', '#f28b7d', '#7bc67e', '#fde8e4', '#ffd700']
+      })
+    }
+    await supabase
+      .from('checklist')
+      .upsert(
+        { date: dateKey, ...newChecked, updated_at: new Date().toISOString() },
+        { onConflict: 'date' }
+      )
+  }
 
   return (
     <div className="home">
@@ -159,6 +189,24 @@ const toggle = async (key) => {
           <CheckCard emoji="🎡" label="Play Time" checked={checked.playtime} onToggle={() => toggle('playtime')} />
         </div>
       )}
+
+      <div className="notes-section">
+        {!showNotes ? (
+          <button className="add-notes-btn" onClick={() => setShowNotes(true)}>
+            + add note
+          </button>
+        ) : (
+          <div className="notes-box">
+            <p className="notes-label">Notes</p>
+            <textarea
+              className="notes-input"
+              placeholder="Add a note about today..."
+              value={notes}
+              onChange={e => saveNotes(e.target.value)}
+            />
+          </div>
+        )}
+      </div>
 
       <div className="links home">
         <p>more stuff:</p>

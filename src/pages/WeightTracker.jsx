@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import confetti from 'canvas-confetti'
 import { supabase } from '../supabase'
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Dot } from 'recharts'
 
 export default function WeightTracker() {
   const [weights, setWeights] = useState([])
@@ -39,6 +40,13 @@ export default function WeightTracker() {
     loadWeights()
   }
 
+  const chartData = [...weights]
+    .reverse()
+    .map(w => ({
+      date: new Date(w.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      weight: w.weight
+    }))
+
   return (
     <div className="page">
       <Link to="/profile" className="back">&lt; Back to Profile</Link>
@@ -57,6 +65,30 @@ export default function WeightTracker() {
         <span className="grams-label">grams</span>
         <button onClick={handleSubmit} className="enter-btn">enter</button>
       </div>
+
+      {chartData.length > 1 && (
+        <div className="weight-chart">
+          <p className="chart-label">Weight over time</p>
+          <ResponsiveContainer width="100%" height={180}>
+            <LineChart data={chartData} margin={{ top: 8, right: 16, left: -20, bottom: 0 }}>
+              <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+              <YAxis tick={{ fontSize: 11 }} domain={['auto', 'auto']} />
+              <Tooltip
+                formatter={(value) => [`${value}g`, 'Weight']}
+                contentStyle={{ borderRadius: '10px', border: '1px solid #f0e0d8', fontSize: '13px' }}
+              />
+              <Line
+                type="monotone"
+                dataKey="weight"
+                stroke="#e8735a"
+                strokeWidth={2.5}
+                dot={{ fill: '#e8735a', r: 4 }}
+                activeDot={{ r: 6 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      )}
 
       <h3 style={{ marginBottom: '10px', fontSize: '16px' }}>Chester's Record:</h3>
       <div className="weight-log">

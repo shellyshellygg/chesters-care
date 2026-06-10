@@ -36,14 +36,14 @@ export default function CareSummary() {
 
   const [checked, setChecked] = useState({
     food: false, veggie: false, water: false,
-    clean: false, snack: false, playtime: false,
+    clean: false, snack: false, playtime: false, cageclean: false,
   })
+  const [notes, setNotes] = useState('')
+  const [showNotes, setShowNotes] = useState(false)
   const [saved, setSaved] = useState(false)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    loadData()
-  }, [date])
+  useEffect(() => { loadData() }, [date])
 
   const loadData = async () => {
     setLoading(true)
@@ -60,9 +60,14 @@ export default function CareSummary() {
         clean: data.clean || false,
         snack: data.snack || false,
         playtime: data.playtime || false,
+        cageclean: data.cageclean || false,
       })
+      if (data.notes) {
+        setNotes(data.notes)
+        setShowNotes(true)
+      }
     } else {
-      setChecked({ food: false, veggie: false, water: false, clean: false, snack: false, playtime: false })
+      setChecked({ food: false, veggie: false, water: false, clean: false, snack: false, playtime: false, cageclean: false })
     }
     setSaved(false)
     setLoading(false)
@@ -76,14 +81,14 @@ export default function CareSummary() {
   }
 
   const handleSave = async () => {
-  await supabase
-    .from('checklist')
-    .upsert(
-      { date, ...checked, updated_at: new Date().toISOString() },
-      { onConflict: 'date' }
-    )
-  setSaved(true)
-}
+    await supabase
+      .from('checklist')
+      .upsert(
+        { date, ...checked, notes, updated_at: new Date().toISOString() },
+        { onConflict: 'date' }
+      )
+    setSaved(true)
+  }
 
   const formatted = parsedDate.toLocaleDateString('en-US', {
     weekday: 'long', month: 'long', day: 'numeric'
@@ -96,6 +101,7 @@ export default function CareSummary() {
     { key: 'clean', emoji: '🚽', label: 'Clean' },
     { key: 'snack', emoji: snack.emoji, label: snack.name },
     { key: 'playtime', emoji: '🎡', label: 'Play Time' },
+    { key: 'cageclean', emoji: '🧹', label: 'Cage Clean' },
   ]
 
   return (
@@ -134,6 +140,28 @@ export default function CareSummary() {
           ))}
         </div>
       )}
+
+      <div className="notes-section">
+        {!showNotes ? (
+          <button className="add-notes-btn" onClick={() => setShowNotes(true)}>
+            + add note
+          </button>
+        ) : (
+          <div className="notes-box">
+            <p className="notes-label">Notes</p>
+            {isFuture ? (
+              <p className="notes-empty">{notes || 'No notes added.'}</p>
+            ) : (
+              <textarea
+                className="notes-input"
+                placeholder="Add a note about today..."
+                value={notes}
+                onChange={e => { setNotes(e.target.value); setSaved(false) }}
+              />
+            )}
+          </div>
+        )}
+      </div>
 
       {!isFuture && (
         <button className="save-btn" onClick={handleSave}>

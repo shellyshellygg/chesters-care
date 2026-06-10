@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../supabase'
 
@@ -16,25 +16,84 @@ function getAge() {
 
 export default function Profile() {
   const [latest, setLatest] = useState(null)
+  const [photoUrl, setPhotoUrl] = useState(null)
+  const [jiggling, setJiggling] = useState(false)
+  const fileRef = useRef()
 
   useEffect(() => {
-    const loadLatest = async () => {
-      const { data } = await supabase
-        .from('weights')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single()
-      if (data) setLatest(data)
-    }
     loadLatest()
+    loadPhoto()
   }, [])
+
+  const loadLatest = async () => {
+    const { data } = await supabase
+      .from('weights')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single()
+    if (data) setLatest(data)
+  }
+
+  const loadPhoto = async () => {
+    const { data } = await supabase.storage
+      .from('chester-photos')
+      .list('', { limit: 1 })
+    if (data && data.length > 0) {
+      const { data: urlData } = supabase.storage
+        .from('chester-photos')
+        .getPublicUrl(data[0].name)
+      setPhotoUrl(urlData.publicUrl)
+    }
+  }
+
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    const { error } = await supabase.storage
+      .from('chester-photos')
+      .upload('chester-profile.jpg', file, { upsert: true })
+    if (!error) loadPhoto()
+  }
+
+  const handleJiggle = () => {
+    setJiggling(true)
+    setTimeout(() => setJiggling(false), 600)
+  }
 
   return (
     <div className="page">
       <Link to="/" className="back">&lt; Back to Checklist</Link>
       <h1 className="page-title">About Chester 🐹</h1>
       <div className="gotcha-badge">🎉 Gotcha Day: August 14, 2025</div>
+
+      <div className="profile-photo-section">
+        {photoUrl ? (
+          <img
+            src={photoUrl}
+            alt="Chester"
+            className={`profile-photo ${jiggling ? 'jiggle' : ''}`}
+            onClick={handleJiggle}
+          />
+        ) : (
+          <div className="profile-photo-placeholder" onClick={() => fileRef.current.click()}>
+            <span>🐹</span>
+            <p>tap to add chester's photo</p>
+          </div>
+        )}
+        {photoUrl && (
+          <button className="change-photo-btn" onClick={() => fileRef.current.click()}>
+            change photo
+          </button>
+        )}
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          style={{ display: 'none' }}
+          onChange={handlePhotoUpload}
+        />
+      </div>
 
       <div className="info-card">
         <p>Chester is around</p>
