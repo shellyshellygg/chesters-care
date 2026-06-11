@@ -6,12 +6,13 @@ export default function ScrollToTop() {
 
   useEffect(() => {
     setTimeout(() => {
-      window.scrollTo(0, 0)
-      document.documentElement.scrollTop = 0
-      document.body.scrollTop = 0
-      const root = document.getElementById('root')
-      if (root) root.scrollTop = 0
-    }, 0)
+      try {
+        window.scroll(0, 0)
+        window.scrollTo(0, 0)
+        document.querySelector('.page')?.scrollIntoView()
+        document.querySelector('.home')?.scrollIntoView()
+      } catch (e) {}
+    }, 50)
   }, [pathname])
 
   return null
