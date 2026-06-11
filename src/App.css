@@ -1,6 +1,11 @@
+#root {
+  overflow-y: auto;
+  height: 100%;
+}
+
 html, body {
-  scroll-behavior: auto;
-  overflow-x: hidden;
+  height: 100%;
+  overflow: hidden;
 }
 /* ============================================
    GLOBAL
