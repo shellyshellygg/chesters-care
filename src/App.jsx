@@ -7,6 +7,7 @@ import SafeFoods from './pages/SafeFoods'
 import Calendar from './pages/Calendar'
 import CareSummary from './pages/CareSummary'
 import Passcode from './pages/Passcode'
+import ScrollToTop from './ScrollToTop'
 
 function App() {
   const [unlocked, setUnlocked] = useState(
@@ -19,6 +20,7 @@ function App() {
 
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/profile" element={<Profile />} />
