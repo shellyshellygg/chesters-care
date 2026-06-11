@@ -13,11 +13,18 @@ const SNACK_BY_DAY = {
   6: { name: 'Snack', emoji: '⭐', description: 'Free choice treat' },
 }
 
-const FEEDING_START = new Date('2026-06-07T12:00:00')
+const FEEDING_START = '2026-06-10'
 
 function isFeedingDay(date) {
-  const diffDays = Math.floor((date - FEEDING_START) / (1000 * 60 * 60 * 24))
-  return diffDays % 2 === 0
+  const start = new Date(FEEDING_START + 'T12:00:00')
+  const target = new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate(),
+    12, 0, 0
+  )
+  const diffDays = Math.round((target - start) / (1000 * 60 * 60 * 24))
+  return diffDays % 2 !== 0
 }
 
 function formatDate(date) {
